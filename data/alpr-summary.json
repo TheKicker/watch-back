@@ -1,0 +1,365 @@
+{
+  "source": "overpass",
+  "generatedAt": null,
+  "note": "Partial seed. Per-state ALPR node counts from OpenStreetMap. The nightly Update ALPR state summary workflow fills in the nulls; states with a null count simply draw no bubble rather than claiming zero.",
+  "total": 30175,
+  "states": [
+    {
+      "code": "AL",
+      "name": "Alabama",
+      "lat": 32.806,
+      "lon": -86.791,
+      "count": 2649
+    },
+    {
+      "code": "AK",
+      "name": "Alaska",
+      "lat": 63.588,
+      "lon": -154.493,
+      "count": 0
+    },
+    {
+      "code": "AZ",
+      "name": "Arizona",
+      "lat": 33.729,
+      "lon": -111.431,
+      "count": 2594
+    },
+    {
+      "code": "AR",
+      "name": "Arkansas",
+      "lat": 34.97,
+      "lon": -92.373,
+      "count": 1037
+    },
+    {
+      "code": "CA",
+      "name": "California",
+      "lat": 36.116,
+      "lon": -119.682,
+      "count": 20259
+    },
+    {
+      "code": "CO",
+      "name": "Colorado",
+      "lat": 39.059,
+      "lon": -105.311,
+      "count": 2663
+    },
+    {
+      "code": "CT",
+      "name": "Connecticut",
+      "lat": 41.597,
+      "lon": -72.755,
+      "count": 973
+    },
+    {
+      "code": "DE",
+      "name": "Delaware",
+      "lat": 39.318,
+      "lon": -75.507,
+      "count": null
+    },
+    {
+      "code": "DC",
+      "name": "District of Columbia",
+      "lat": 38.897,
+      "lon": -77.026,
+      "count": null
+    },
+    {
+      "code": "FL",
+      "name": "Florida",
+      "lat": 27.766,
+      "lon": -81.686,
+      "count": null
+    },
+    {
+      "code": "GA",
+      "name": "Georgia",
+      "lat": 33.04,
+      "lon": -83.643,
+      "count": null
+    },
+    {
+      "code": "HI",
+      "name": "Hawaii",
+      "lat": 21.094,
+      "lon": -157.498,
+      "count": null
+    },
+    {
+      "code": "ID",
+      "name": "Idaho",
+      "lat": 44.24,
+      "lon": -114.478,
+      "count": null
+    },
+    {
+      "code": "IL",
+      "name": "Illinois",
+      "lat": 40.349,
+      "lon": -88.986,
+      "count": null
+    },
+    {
+      "code": "IN",
+      "name": "Indiana",
+      "lat": 39.849,
+      "lon": -86.258,
+      "count": null
+    },
+    {
+      "code": "IA",
+      "name": "Iowa",
+      "lat": 42.011,
+      "lon": -93.21,
+      "count": null
+    },
+    {
+      "code": "KS",
+      "name": "Kansas",
+      "lat": 38.526,
+      "lon": -96.726,
+      "count": null
+    },
+    {
+      "code": "KY",
+      "name": "Kentucky",
+      "lat": 37.668,
+      "lon": -84.67,
+      "count": null
+    },
+    {
+      "code": "LA",
+      "name": "Louisiana",
+      "lat": 31.169,
+      "lon": -91.867,
+      "count": null
+    },
+    {
+      "code": "ME",
+      "name": "Maine",
+      "lat": 44.693,
+      "lon": -69.381,
+      "count": null
+    },
+    {
+      "code": "MD",
+      "name": "Maryland",
+      "lat": 39.064,
+      "lon": -76.802,
+      "count": null
+    },
+    {
+      "code": "MA",
+      "name": "Massachusetts",
+      "lat": 42.23,
+      "lon": -71.53,
+      "count": null
+    },
+    {
+      "code": "MI",
+      "name": "Michigan",
+      "lat": 43.326,
+      "lon": -84.536,
+      "count": null
+    },
+    {
+      "code": "MN",
+      "name": "Minnesota",
+      "lat": 45.694,
+      "lon": -93.9,
+      "count": null
+    },
+    {
+      "code": "MS",
+      "name": "Mississippi",
+      "lat": 32.741,
+      "lon": -89.678,
+      "count": null
+    },
+    {
+      "code": "MO",
+      "name": "Missouri",
+      "lat": 38.456,
+      "lon": -92.288,
+      "count": null
+    },
+    {
+      "code": "MT",
+      "name": "Montana",
+      "lat": 46.921,
+      "lon": -110.454,
+      "count": null
+    },
+    {
+      "code": "NE",
+      "name": "Nebraska",
+      "lat": 41.125,
+      "lon": -98.268,
+      "count": null
+    },
+    {
+      "code": "NV",
+      "name": "Nevada",
+      "lat": 38.313,
+      "lon": -117.055,
+      "count": null
+    },
+    {
+      "code": "NH",
+      "name": "New Hampshire",
+      "lat": 43.452,
+      "lon": -71.563,
+      "count": null
+    },
+    {
+      "code": "NJ",
+      "name": "New Jersey",
+      "lat": 40.298,
+      "lon": -74.521,
+      "count": null
+    },
+    {
+      "code": "NM",
+      "name": "New Mexico",
+      "lat": 34.84,
+      "lon": -106.248,
+      "count": null
+    },
+    {
+      "code": "NY",
+      "name": "New York",
+      "lat": 42.165,
+      "lon": -74.948,
+      "count": null
+    },
+    {
+      "code": "NC",
+      "name": "North Carolina",
+      "lat": 35.63,
+      "lon": -79.806,
+      "count": null
+    },
+    {
+      "code": "ND",
+      "name": "North Dakota",
+      "lat": 47.528,
+      "lon": -99.784,
+      "count": null
+    },
+    {
+      "code": "OH",
+      "name": "Ohio",
+      "lat": 40.388,
+      "lon": -82.764,
+      "count": null
+    },
+    {
+      "code": "OK",
+      "name": "Oklahoma",
+      "lat": 35.565,
+      "lon": -96.928,
+      "count": null
+    },
+    {
+      "code": "OR",
+      "name": "Oregon",
+      "lat": 44.572,
+      "lon": -122.07,
+      "count": null
+    },
+    {
+      "code": "PA",
+      "name": "Pennsylvania",
+      "lat": 40.59,
+      "lon": -77.209,
+      "count": null
+    },
+    {
+      "code": "RI",
+      "name": "Rhode Island",
+      "lat": 41.68,
+      "lon": -71.511,
+      "count": null
+    },
+    {
+      "code": "SC",
+      "name": "South Carolina",
+      "lat": 33.856,
+      "lon": -80.945,
+      "count": null
+    },
+    {
+      "code": "SD",
+      "name": "South Dakota",
+      "lat": 44.299,
+      "lon": -99.438,
+      "count": null
+    },
+    {
+      "code": "TN",
+      "name": "Tennessee",
+      "lat": 35.747,
+      "lon": -86.692,
+      "count": null
+    },
+    {
+      "code": "TX",
+      "name": "Texas",
+      "lat": 31.054,
+      "lon": -97.563,
+      "count": null
+    },
+    {
+      "code": "UT",
+      "name": "Utah",
+      "lat": 40.15,
+      "lon": -111.862,
+      "count": null
+    },
+    {
+      "code": "VT",
+      "name": "Vermont",
+      "lat": 44.045,
+      "lon": -72.71,
+      "count": null
+    },
+    {
+      "code": "VA",
+      "name": "Virginia",
+      "lat": 37.769,
+      "lon": -78.17,
+      "count": null
+    },
+    {
+      "code": "WA",
+      "name": "Washington",
+      "lat": 47.4,
+      "lon": -121.49,
+      "count": null
+    },
+    {
+      "code": "WV",
+      "name": "West Virginia",
+      "lat": 38.491,
+      "lon": -80.954,
+      "count": null
+    },
+    {
+      "code": "WI",
+      "name": "Wisconsin",
+      "lat": 44.268,
+      "lon": -89.616,
+      "count": null
+    },
+    {
+      "code": "WY",
+      "name": "Wyoming",
+      "lat": 42.756,
+      "lon": -107.302,
+      "count": null
+    }
+  ]
+}

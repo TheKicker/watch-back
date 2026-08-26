@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Watch Back — Steubenville surveillance map</title>
-<meta name="description" content="Two camera networks watch the same roads in Steubenville, Ohio. One you can watch back. One only watches you.">
+<title>Watch Back — who is watching your road</title>
+<meta name="description" content="Two camera networks watch the same roads across the US. One you can watch back. One only watches you.">
 
-<meta property="og:title" content="Watch Back — Steubenville surveillance map">
+<meta property="og:title" content="Watch Back — who is watching your road">
 <meta property="og:description" content="Two camera networks watch the same roads. One you can watch back. One only watches you.">
 <meta property="og:type" content="website">
 
@@ -128,8 +128,8 @@
     <label class="legend-row open on" id="row-odot">
       <span class="legend-swatch"></span>
       <span>
-        <span class="legend-label">ODOT traffic cameras</span>
-        <span class="legend-note">Public, live, no plate reading. Click one and look through it.</span>
+        <span class="legend-label">Public traffic cameras</span>
+        <span class="legend-note">Run by state DOTs and other agencies. Live, no plate reading. Click one and look through it.</span>
       </span>
       <span class="legend-count" id="count-odot">—</span>
     </label>
@@ -154,11 +154,17 @@
 
     <div id="loading"><span class="spinner"></span> Loading plate readers from OpenStreetMap…</div>
 
-    <div class="hint-box">Click anywhere on the map to see who watches that spot.</div>
+    <button class="btn btn-sm locale-wide" id="refresh" style="margin-top:10px">↻ Refresh this view</button>
+
+    <div class="hint-box">
+      Click anywhere on the map to see who watches that spot. Zoom in past the state
+      totals first — that is when individual readers load.
+    </div>
 
     <div class="hint-box hide" id="seed-hint">
-      Showing the seed camera only. Add an <span class="mono">OHGO_API_KEY</span> secret to pull ODOT's full catalog —
-      see <a href="contribute.html">Contribute</a>.
+      Showing the seed camera only. Public-camera coverage is per-agency and still being
+      built out — see <a href="contribute.html">Contribute</a>. Plate-reader data is
+      nationwide already, because it comes from OpenStreetMap.
     </div>
 
     <div class="hint-box hide" id="stale-hint">

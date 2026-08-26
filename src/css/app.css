@@ -250,3 +250,78 @@ a:hover { text-decoration: underline; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #2b2f36; border-radius: 5px; }
 ::-webkit-scrollbar-thumb:hover { background: #3a3f47; }
+
+/* ---------- place picker ---------- */
+
+.locale-host { position: relative; }
+
+.locale-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 9px; border-radius: var(--r-sm);
+  background: #1a1d22; border: 1px solid var(--border-hi);
+  color: var(--fg); font-family: inherit; font-size: 12px;
+  cursor: pointer; max-width: 260px;
+}
+.locale-chip:hover { border-color: #454a54; }
+.locale-pin { color: var(--open); font-size: 11px; }
+.locale-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.locale-caret { color: var(--fg-faint); font-size: 9px; }
+
+.locale-pop {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 60;
+  width: 310px; max-width: calc(100vw - 24px); padding: 13px;
+  background: var(--bg-panel); backdrop-filter: blur(14px);
+  border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--shadow);
+}
+
+.locale-search { display: flex; gap: 6px; margin-bottom: 9px; }
+.locale-search .search { flex: 1; min-width: 0; }
+
+.locale-results { display: flex; flex-direction: column; gap: 3px; margin-bottom: 9px; }
+.locale-hit {
+  text-align: left; padding: 7px 9px; border-radius: var(--r-sm);
+  background: var(--bg-raised); border: 1px solid var(--border);
+  color: var(--fg); font-family: inherit; font-size: 12px; cursor: pointer;
+}
+.locale-hit:hover { border-color: var(--open); color: var(--open); }
+
+.locale-msg { font-size: 11.5px; color: var(--fg-dim); margin: 0 0 9px; line-height: 1.45; }
+.locale-msg.warn { color: var(--closed); }
+.locale-msg.ok { color: var(--ok); }
+
+.locale-wide { width: 100%; justify-content: center; }
+.locale-saved { display: flex; flex-direction: column; gap: 5px; margin-top: 5px; }
+
+.locale-note {
+  margin: 12px 0 0; padding-top: 11px; border-top: 1px solid var(--border);
+  font-size: 11px; line-height: 1.5; color: var(--fg-faint);
+}
+.locale-note b { color: var(--fg-dim); font-weight: 600; }
+
+/* ---------- national summary bubbles ----------
+   Red, because these are plate readers. The palette rule at the top of this
+   file is the argument the whole site makes; a third colour would blunt it. */
+
+.state-bubble {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border-radius: 50%; cursor: pointer; padding: 0;
+  background: rgba(255, 77, 79, 0.22);
+  border: 1.5px solid var(--closed);
+  color: #ffdcdc; font-family: var(--mono); line-height: 1;
+  backdrop-filter: blur(2px);
+  transition: background 0.12s ease, transform 0.12s ease;
+}
+.state-bubble:hover { background: rgba(255, 77, 79, 0.38); transform: scale(1.06); }
+.state-bubble span { font-size: 11px; font-weight: 700; }
+.state-bubble small { font-size: 8px; opacity: 0.7; margin-top: 2px; letter-spacing: 0.06em; }
+
+/* ---------- misc ---------- */
+
+#loading.warn { color: var(--closed); }
+
+.wall-sentinel {
+  padding: 22px; text-align: center;
+  font-size: 12px; color: var(--fg-faint);
+}
+
+.tile-dist { color: var(--fg-faint); flex-shrink: 0; }

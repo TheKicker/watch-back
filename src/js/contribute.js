@@ -10,13 +10,14 @@
  * from — so fixing it here fixes it there.
  */
 
-import { CENTER, ALPR_RADIUS_M, DESIRED_TAGS, CORE_TAGS } from "./config.js";
+import { ALPR_RADIUS_M, DESIRED_TAGS, CORE_TAGS } from "./config.js";
+import * as locale from "./locale.js";
 import { loadALPRs, missingTags, editUrl } from "./data.js";
 import { distance, metersToMiles, parseDirections, streetViewLinks } from "./geo.js";
 
 const $ = (sel) => document.querySelector(sel);
 
-const state = { rows: [], sort: "nearest" };
+const state = { rows: [], sort: "nearest", seq: 0 };
 
 const esc = (s) =>
   String(s == null ? "" : s).replace(
@@ -75,16 +76,47 @@ function render() {
   $("#showing").textContent = Math.min(rows.length, 60);
 }
 
-async function boot() {
+/**
+ * Rebuild the to-do list for wherever the visitor is looking.
+ *
+ * Local knowledge is the scarce input here, so the list follows the place
+ * picker rather than a compiled-in home town: whoever is standing near these
+ * poles is the person who can actually fill the tags in.
+ */
+async function load() {
+  const here = locale.get();
+  const seq = ++state.seq;
+
+  $("#place").textContent = locale.isDefault() ? "you" : locale.label(here);
+
+  if (locale.isDefault()) {
+    // A 40 km radius around the geographic centre of the country answers a
+    // question nobody asked. Wait for a real place rather than burn an
+    // Overpass query on Kansas farmland.
+    $("#list-wrap").classList.add("hide");
+    $("#worst").classList.add("hide");
+    $("#loading").classList.remove("hide");
+    $("#loading").innerHTML =
+      'Pick a place in the header — search a town, or use your location — ' +
+      'and this becomes the list of records near you that need fixing.';
+    return;
+  }
+
+  $("#loading").classList.remove("hide");
+  $("#loading").innerHTML = '<span class="spinner"></span> Loading plate readers from OpenStreetMap…';
+  $("#list-wrap").classList.add("hide");
+  $("#worst").classList.add("hide");
+
   try {
-    const { nodes } = await loadALPRs(CENTER.lat, CENTER.lon, ALPR_RADIUS_M);
+    const { nodes } = await loadALPRs(here.lat, here.lon, ALPR_RADIUS_M);
+    if (seq !== state.seq) return; // a newer place already won
 
     const rows = nodes
       .map((node) => ({
         node,
         gaps: missingTags(node, CORE_TAGS),
-        dist: distance(CENTER.lat, CENTER.lon, node.lat, node.lon),
-        bearing: bearingFrom(CENTER.lat, CENTER.lon, node.lat, node.lon),
+        dist: distance(here.lat, here.lon, node.lat, node.lon),
+        bearing: bearingFrom(here.lat, here.lon, node.lat, node.lon),
       }))
       .filter((r) => r.gaps.length > 0);
 
@@ -107,7 +139,7 @@ async function boot() {
     if (worst && worst.n > 0) {
       $("#worst").innerHTML =
         `Biggest gap: <b>${esc(worst.t.label)}</b> is missing on ` +
-        `<b>${worst.n}</b> of ${nodes.length} nearby readers. ${esc(worst.t.why)}`;
+        `<b>${worst.n}</b> of ${nodes.length} readers near here. ${esc(worst.t.why)}`;
       $("#worst").classList.remove("hide");
     }
 
@@ -115,10 +147,13 @@ async function boot() {
     $("#list-wrap").classList.remove("hide");
     render();
   } catch (err) {
+    if (seq !== state.seq) return;
     $("#loading").innerHTML =
       '<span style="color:var(--closed)">Could not reach OpenStreetMap — ' + esc(err.message) + "</span>";
   }
+}
 
+function boot() {
   document.querySelectorAll("[data-sort]").forEach((btn) => {
     btn.addEventListener("click", () => {
       state.sort = btn.dataset.sort;
@@ -127,6 +162,9 @@ async function boot() {
       render();
     });
   });
+
+  locale.subscribe(() => load());
+  load();
 }
 
 boot();

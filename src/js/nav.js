@@ -1,5 +1,7 @@
 /** Shared site header, so the three pages cannot drift apart. */
 
+import { mountLocalePicker } from "./locale-ui.js";
+
 const LINKS = [
   ["index.html",      "Map"],
   ["wall.html",       "Camera Wall"],
@@ -17,9 +19,11 @@ export function mountHeader(current) {
     `<header class="site-header">
        <a class="brand" href="index.html">
          <span class="mark">WATCH BACK</span>
-         <span class="sub">Steubenville, OH</span>
        </a>
+       <div class="locale-host" id="locale-host"></div>
        <nav class="site-nav">${nav}</nav>
      </header>`
   );
+
+  mountLocalePicker(document.getElementById("locale-host"));
 }

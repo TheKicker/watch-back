@@ -1,4 +1,4 @@
-# Rebakes data/cameras.json from the OHGO API.
+# Rebakes data/cameras.json with every ODOT camera in Ohio, from the OHGO API.
 #
 # Free with unlimited minutes on public repositories, and it is the only place
 # the API key is ever used — the published site calls no keyed endpoint.
@@ -29,9 +29,9 @@ jobs:
       - name: Fetch cameras
         env:
           OHGO_API_KEY: ${{ secrets.OHGO_API_KEY }}
-          OHGO_LAT: "40.3871"
-          OHGO_LON: "-80.6348"
-          OHGO_RADIUS_MILES: "25"
+          # No radius = the whole state. OHGO is Ohio-wide; asking for less
+          # only made sense while the site was homed on one town.
+          OHGO_RADIUS_MILES: "all"
         run: node scripts/fetch-cameras.mjs
 
       - name: Commit if changed

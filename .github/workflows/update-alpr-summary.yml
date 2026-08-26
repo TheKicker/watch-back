@@ -1,0 +1,44 @@
+# Rebakes data/alpr-summary.json — per-state ALPR counts from OpenStreetMap.
+#
+# This is what the zoomed-out national map draws. Without it the country view
+# would either be empty or would need every visitor to run a nationwide Overpass
+# query, which is both slow for them and abusive to a volunteer-run service.
+#
+# Needs no secrets. Runs on a public repo, so the minutes are free.
+
+name: Update ALPR state summary
+
+on:
+  schedule:
+    - cron: "42 9 * * *"   # 09:42 UTC daily, offset from the camera job
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    # 51 paced queries against a shared service; give it room but don't hang.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Count plate readers per state
+        run: node scripts/fetch-alpr-summary.mjs
+
+      - name: Commit if changed
+        run: |
+          if [[ -n "$(git status --porcelain data/alpr-summary.json)" ]]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add data/alpr-summary.json
+            git commit -m "chore: refresh ALPR state summary"
+            git push
+          else
+            echo "summary unchanged"
+          fi

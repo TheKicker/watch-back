@@ -4,27 +4,59 @@
  * Two camera networks watch the same roads. One you can watch back; one only
  * watches you. Putting them in a single view, at the same scale, is the whole
  * point of this page — so the two layers share every control except colour.
+ *
+ * Data loads in two regimes. Zoomed out, the country is too big to ask Overpass
+ * about, so we render pre-baked per-state counts and say so. Zoomed in past
+ * LIVE_DATA_MIN_ZOOM, every settled map move queries the actual viewport. The
+ * seam between those two is the only part of this file that is tricky.
  */
 
-import { CENTER, VIEW, BASEMAP, ALPR_RADIUS_M, CORE_TAGS, CAMERA_REFRESH_MS } from "./config.js";
-import { loadCameras, loadALPRs, loadVendors, missingTags, editUrl, bust } from "./data.js";
+import {
+  VIEW,
+  BASEMAP,
+  LIVE_DATA_MIN_ZOOM,
+  CORE_TAGS,
+  CAMERA_REFRESH_MS,
+} from "./config.js";
+import {
+  loadCameras,
+  loadALPRsInBBox,
+  loadVendors,
+  loadSummary,
+  missingTags,
+  editUrl,
+  bust,
+} from "./data.js";
 import { coneRing, parseDirections, distance, metersToMiles, streetViewLinks } from "./geo.js";
+import * as locale from "./locale.js";
 
 const $ = (sel) => document.querySelector(sel);
+
+const ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ESCAPES[c]);
 
 const state = {
   cameras: [],
   alprs: [],
   vendors: {},
   publicNetwork: {},
+  summary: [],
+  markers: [],
   thumbTimer: null,
+  moveTimer: null,
+  seq: 0,
+  live: false,
+  /** True while a flyTo we started is still settling — see the moveend handler. */
+  programmatic: false,
 };
+
+const start = locale.initial();
 
 const map = new maplibregl.Map({
   container: "map",
   style: BASEMAP,
-  center: [CENTER.lon, CENTER.lat],
-  zoom: VIEW.zoom,
+  center: [start.lon, start.lat],
+  zoom: start.zoom,
   minZoom: VIEW.minZoom,
   maxZoom: VIEW.maxZoom,
   attributionControl: false,
@@ -35,7 +67,7 @@ map.addControl(
   new maplibregl.AttributionControl({
     compact: true,
     customAttribution:
-      '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap</a> · ALPR data ODbL · cameras © ODOT',
+      '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap</a> · ALPR data ODbL · cameras © state DOTs',
   }),
   "bottom-right"
 );
@@ -166,17 +198,147 @@ function addLayers() {
   });
 }
 
+/* ---------- national summary ---------- */
+
+const BUBBLE_MIN_PX = 30;
+const BUBBLE_MAX_PX = 74;
+
+/**
+ * Diameter for a state's count, scaled against the busiest state in the file.
+ *
+ * Area-proportional, so `sqrt` — a state with four times the readers gets four
+ * times the ink, not four times the width. Calibrating off the observed maximum
+ * rather than a fixed coefficient matters because these counts are neither
+ * small nor stable: Ohio is around 6,700 and California around 20,000, and any
+ * constant tuned for one of those pins every other state to the clamp and
+ * renders the whole country at one size.
+ */
+function bubbleSize(count, max) {
+  if (!max) return BUBBLE_MIN_PX;
+  const t = Math.sqrt(Math.min(count, max) / max);
+  return Math.round(BUBBLE_MIN_PX + (BUBBLE_MAX_PX - BUBBLE_MIN_PX) * t);
+}
+
+/**
+ * Drawn as HTML markers rather than a symbol layer on purpose: a symbol layer
+ * would need a glyph stack from the basemap style, and fifty markers cost
+ * nothing. This keeps the zoomed-out view independent of the style's fonts.
+ */
+function showSummary() {
+  if (state.markers.length) return;
+
+  const max = state.summary.reduce((m, s) => Math.max(m, s.count || 0), 0);
+
+  for (const s of state.summary) {
+    if (!s.count) continue; // null = we couldn't ask; 0 = genuinely none. Neither draws.
+
+    const el = document.createElement("button");
+    el.className = "state-bubble";
+    el.type = "button";
+    el.title = `${s.name}: ${s.count.toLocaleString()} plate readers mapped in OSM`;
+    el.innerHTML = `<span>${s.count.toLocaleString()}</span><small>${esc(s.code)}</small>`;
+
+    const size = bubbleSize(s.count, max);
+    el.style.width = `${size}px`;
+    el.style.height = `${size}px`;
+
+    el.addEventListener("click", () => {
+      map.flyTo({ center: [s.lon, s.lat], zoom: LIVE_DATA_MIN_ZOOM + 0.4 });
+    });
+
+    state.markers.push(new maplibregl.Marker({ element: el }).setLngLat([s.lon, s.lat]).addTo(map));
+  }
+}
+
+function hideSummary() {
+  state.markers.forEach((m) => m.remove());
+  state.markers = [];
+}
+
+/* ---------- viewport-driven loading ---------- */
+
+const inView = (b, lat, lon) =>
+  lat >= b.getSouth() && lat <= b.getNorth() && lon >= b.getWest() && lon <= b.getEast();
+
+function setStatus(html, tone) {
+  const el = $("#loading");
+  el.innerHTML = html;
+  el.className = tone || "";
+}
+
+/**
+ * Reload for wherever the map now is.
+ *
+ * `seq` guards against a slow response for an old viewport landing after a fast
+ * one for the current viewport and quietly replacing good data with stale data.
+ * Panning quickly triggers that within seconds.
+ */
+async function refreshViewport({ force = false } = {}) {
+  const zoom = map.getZoom();
+  const bounds = map.getBounds();
+
+  // Cameras are cheap to hold in memory; only the count is viewport-scoped.
+  const camsHere = state.cameras.filter((c) => inView(bounds, c.latitude, c.longitude));
+  $("#count-odot").textContent = camsHere.length.toLocaleString();
+
+  if (zoom < LIVE_DATA_MIN_ZOOM) {
+    state.live = false;
+    state.alprs = [];
+    map.getSource("alpr").setData(fc([]));
+    map.getSource("alpr-cones").setData(fc([]));
+    showSummary();
+
+    const total = state.summary.reduce((n, s) => n + (s.count || 0), 0);
+    $("#count-alpr").textContent = total ? total.toLocaleString() : "—";
+    $("#count-gaps").textContent = "—";
+    setStatus(
+      state.summary.length
+        ? "Showing per-state totals. <b>Zoom in</b> to load individual plate readers."
+        : "<b>Zoom in</b> to load plate readers for an area."
+    );
+    return;
+  }
+
+  hideSummary();
+  state.live = true;
+
+  const seq = ++state.seq;
+  setStatus('<span class="spinner"></span> Loading plate readers for this view…');
+
+  try {
+    const { nodes, stale } = await loadALPRsInBBox(
+      [bounds.getSouth(), bounds.getWest(), bounds.getNorth(), bounds.getEast()],
+      { force }
+    );
+    if (seq !== state.seq) return; // a newer viewport already won
+
+    state.alprs = nodes;
+    map.getSource("alpr").setData(alprFeatures(nodes));
+    map.getSource("alpr-cones").setData(coneFeatures(nodes));
+
+    const incomplete = nodes.filter((n) => missingTags(n, CORE_TAGS).length > 0).length;
+    $("#count-alpr").textContent = nodes.length.toLocaleString();
+    $("#count-gaps").textContent = incomplete.toLocaleString();
+
+    setStatus(
+      nodes.length === 0
+        ? "No plate readers mapped here yet. That may mean none exist — or that nobody has added them."
+        : `<b>${nodes.length.toLocaleString()}</b> plate readers in view.`
+    );
+    $("#stale-hint").classList.toggle("hide", !stale);
+  } catch (err) {
+    if (seq !== state.seq) return;
+    setStatus(`Could not load plate readers — ${esc(err.message)}`, "warn");
+  }
+}
+
+/** Map moves are chatty; one query per settled view is plenty. */
+function scheduleRefresh() {
+  clearTimeout(state.moveTimer);
+  state.moveTimer = setTimeout(() => refreshViewport(), 400);
+}
+
 /* ---------- detail panel ---------- */
-
-const ESCAPES = {
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  '"': "&quot;",
-  "'": "&#39;",
-};
-
-const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ESCAPES[c]);
 
 function closeDetail() {
   clearInterval(state.thumbTimer);
@@ -199,7 +361,7 @@ function scoreRow(label, value, tone) {
   return `<div class="score-row"><dt>${esc(label)}</dt><dd${cls}>${esc(value)}</dd></div>`;
 }
 
-/** ODOT camera: the point is that you can just look through it. */
+/** Public camera: the point is that you can just look through it. */
 function showCamera(cam) {
   if (!cam) return;
   const p = state.publicNetwork;
@@ -207,7 +369,7 @@ function showCamera(cam) {
 
   openDetail(`
     <span class="chip open">Public infrastructure</span>
-    <h2 class="detail-title">${esc(cam.location || "ODOT camera")}</h2>
+    <h2 class="detail-title">${esc(cam.location || "Traffic camera")}</h2>
     <p class="detail-sub">${esc(cam.description || "")}</p>
 
     ${views
@@ -223,7 +385,7 @@ function showCamera(cam) {
     <dl class="score-grid">
       ${scoreRow("You can view it live", "Yes", "yes")}
       ${scoreRow("Identifies individuals", "No", "yes")}
-      ${scoreRow("Operator", p.operator || "ODOT")}
+      ${scoreRow("Operator", cam.agency || p.operator || "State DOT")}
       ${scoreRow("Data licence", p.dataLicense || "Public domain")}
       ${scoreRow("Records request", p.recordsRequest || "—")}
     </dl>
@@ -316,6 +478,9 @@ function circleRing(lat, lon, meters, steps = 64) {
 }
 
 function probeAt(lat, lon) {
+  // Nothing is loaded at summary zoom, so a count here would read as zero.
+  if (!state.live) return;
+
   const alprs = state.alprs.filter((n) => distance(lat, lon, n.lat, n.lon) <= PROBE_M);
   const cams = state.cameras.filter((c) => distance(lat, lon, c.latitude, c.longitude) <= PROBE_M);
 
@@ -345,7 +510,7 @@ function probeAt(lat, lon) {
     </div>
     ${
       nearest
-        ? `<p class="detail-note faint">Nearest plate reader: ${metersToMiles(nearest.d).toFixed(2)} mi</p>`
+        ? `<p class="detail-note faint">Nearest plate reader in view: ${metersToMiles(nearest.d).toFixed(2)} mi</p>`
         : ""
     }`;
   probe.classList.remove("hide");
@@ -369,6 +534,14 @@ function wireLegend() {
   bind("#row-odot", ["odot-points"]);
   bind("#row-alpr", ["alpr-points", "alpr-cones"]);
   bind("#row-gaps", ["alpr-gaps"]);
+
+  // The six-hour cache means a contributor cannot see their own OSM edit
+  // without this. That is exactly the moment they most want to.
+  $("#refresh").addEventListener("click", async (e) => {
+    e.target.disabled = true;
+    await refreshViewport({ force: true });
+    e.target.disabled = false;
+  });
 }
 
 /* ---------- boot ---------- */
@@ -377,30 +550,49 @@ map.on("load", async () => {
   addLayers();
   wireLegend();
 
-  const [camData, vendorData] = await Promise.all([loadCameras(), loadVendors()]);
+  const [camData, vendorData, summary] = await Promise.all([
+    loadCameras(),
+    loadVendors(),
+    loadSummary(),
+  ]);
+
   state.cameras = camData.cameras;
   state.vendors = vendorData.vendors || {};
   state.publicNetwork = vendorData.publicNetwork || {};
+  state.summary = summary.states || [];
 
   map.getSource("odot").setData(cameraFeatures(state.cameras));
-  $("#count-odot").textContent = state.cameras.length;
   if (camData.source === "seed") $("#seed-hint").classList.remove("hide");
 
-  try {
-    const { nodes, stale } = await loadALPRs(CENTER.lat, CENTER.lon, ALPR_RADIUS_M);
-    state.alprs = nodes;
-    map.getSource("alpr").setData(alprFeatures(nodes));
-    map.getSource("alpr-cones").setData(coneFeatures(nodes));
+  await refreshViewport();
 
-    const incomplete = nodes.filter((n) => missingTags(n, CORE_TAGS).length > 0).length;
-    $("#count-alpr").textContent = nodes.length;
-    $("#count-gaps").textContent = incomplete;
-    $("#loading").classList.add("hide");
-    if (stale) $("#stale-hint").classList.remove("hide");
-  } catch (err) {
-    $("#loading").innerHTML =
-      '<span style="color:var(--closed)">ALPR data unavailable — ' + esc(err.message) + "</span>";
-  }
+  map.on("moveend", () => {
+    // The map is the source of truth once it moves: push the view into the URL
+    // so it is shareable, and into locale so the other pages follow.
+    const c = map.getCenter();
+    const view = { lat: c.lat, lon: c.lng, zoom: map.getZoom() };
+
+    if (state.programmatic) {
+      // We flew here because a place was picked, so that place's name still
+      // describes the view. Keep it, and stay quiet to avoid a feedback loop.
+      state.programmatic = false;
+      locale.set(view, { silent: true });
+    } else {
+      // The visitor dragged. Whatever this view was called, it isn't that any
+      // more — drop the name rather than let the header lie about where you are.
+      locale.set({ ...view, name: null, source: "map" });
+    }
+
+    locale.writeHash(view);
+    scheduleRefresh();
+  });
+});
+
+/* A place chosen in the header moves the map; the moveend above does the rest. */
+locale.subscribe((next) => {
+  if (next.source === "map") return; // our own move, already applied
+  state.programmatic = true;
+  map.flyTo({ center: [next.lon, next.lat], zoom: next.zoom ?? map.getZoom(), essential: true });
 });
 
 document.addEventListener("keydown", (e) => {
