@@ -1,0 +1,47 @@
+# Rebakes data/cameras.json from the OHGO API.
+#
+# Free with unlimited minutes on public repositories, and it is the only place
+# the API key is ever used — the published site calls no keyed endpoint.
+#
+# Without an OHGO_API_KEY secret this still runs green and simply changes nothing,
+# so the repo stays green before the key is added.
+
+name: Update ODOT camera catalog
+
+on:
+  schedule:
+    - cron: "17 8 * * *"   # 08:17 UTC daily
+  workflow_dispatch:        # or run it by hand from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Fetch cameras
+        env:
+          OHGO_API_KEY: ${{ secrets.OHGO_API_KEY }}
+          OHGO_LAT: "40.3871"
+          OHGO_LON: "-80.6348"
+          OHGO_RADIUS_MILES: "25"
+        run: node scripts/fetch-cameras.mjs
+
+      - name: Commit if changed
+        run: |
+          if [[ -n "$(git status --porcelain data/cameras.json)" ]]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add data/cameras.json
+            git commit -m "chore: refresh ODOT camera catalog"
+            git push
+          else
+            echo "catalog unchanged"
+          fi

@@ -1,0 +1,53 @@
+{
+  "note": "Reference facts for the transparency scorecard. Retention and sharing are set by the OPERATING AGENCY's contract, not the vendor, so those fields are deliberately hedged. Verify locally before treating any of it as authoritative — and file an issue if you have a sourced correction.",
+  "publicNetwork": {
+    "name": "ODOT / OHGO traffic camera",
+    "operator": "Ohio Department of Transportation",
+    "liveImagePublic": true,
+    "identifiesIndividuals": false,
+    "retention": "Snapshots are not archived for public access; ODOT handles recorded footage by request.",
+    "recordsRequest": "Ohio Public Records Act (R.C. 149.43)",
+    "dataLicense": "Public domain (ODOT)",
+    "sourceUrl": "https://publicapi.ohgo.com/"
+  },
+  "vendors": {
+    "Flock Safety": {
+      "wikidata": "Q108485435",
+      "liveImagePublic": false,
+      "identifiesIndividuals": true,
+      "retention": "Vendor's published default is 30 days; the operating agency sets the actual period by contract.",
+      "sharing": "Agencies may opt into cross-agency network sharing.",
+      "sourceUrl": "https://www.flocksafety.com/"
+    },
+    "Motorola Solutions": {
+      "liveImagePublic": false,
+      "identifiesIndividuals": true,
+      "retention": "Set by the operating agency's contract.",
+      "sourceUrl": "https://www.motorolasolutions.com/"
+    },
+    "Genetec": {
+      "liveImagePublic": false,
+      "identifiesIndividuals": true,
+      "retention": "Set by the operating agency's contract.",
+      "sourceUrl": "https://www.genetec.com/"
+    },
+    "Leonardo": {
+      "liveImagePublic": false,
+      "identifiesIndividuals": true,
+      "retention": "Set by the operating agency's contract.",
+      "sourceUrl": "https://www.leonardo.com/"
+    },
+    "PlateSmart/CyclopsTchnlgs": {
+      "liveImagePublic": false,
+      "identifiesIndividuals": true,
+      "retention": "Set by the operating agency's contract.",
+      "sourceUrl": "https://wiki.openstreetmap.org/wiki/Tag:surveillance:type%3DALPR"
+    },
+    "Axis Communications": {
+      "liveImagePublic": false,
+      "identifiesIndividuals": true,
+      "retention": "Set by the operating agency's contract.",
+      "sourceUrl": "https://www.axis.com/"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "source": "seed",
+  "generatedAt": null,
+  "center": { "lat": 40.3871, "lon": -80.6348 },
+  "note": "Hand-seeded starter catalog. Add an OHGO_API_KEY repo secret and the update-cameras workflow will replace this with the full ODOT catalog around CENTER. Image URLs are keyless and public either way.",
+  "cameras": [
+    {
+      "id": "seed-us22-sr7-sr213-quad",
+      "latitude": 40.3871,
+      "longitude": -80.6348,
+      "location": "US-22 / SR-7 / SR-213",
+      "description": "Quad view — Steubenville, ODOT District 11",
+      "views": [
+        {
+          "direction": "Quad",
+          "mainRoute": "US-22",
+          "smallUrl": "https://itscameras.dot.state.oh.us/images/D11/US-22_SR-7_SR-213_Quad.jpg",
+          "largeUrl": "https://itscameras.dot.state.oh.us/images/D11/US-22_SR-7_SR-213_Quad.jpg"
+        }
+      ]
+    }
+  ]
+}

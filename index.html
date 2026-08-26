@@ -1,178 +1,180 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ohio DOT - US-22 / SR-7 / SR-213 Quad</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background: #0a0a0a;
-            color: white;
-            font-family: Arial, sans-serif;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        header {
-            background: #111;
-            padding: 10px 15px;
-            text-align: center;
-            border-bottom: 3px solid #ffcc00;
-            flex-shrink: 0;
-        }
-        h1 {
-            margin: 0;
-            font-size: 1.4em;
-        }
-        p {
-            margin: 4px 0 0;
-            font-size: 0.95em;
-            opacity: 0.9;
-        }
-        .camera-container {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #000;
-            overflow: auto;
-            position: relative;
-            padding: 8px;
-            box-sizing: border-box;
-        }
-        img {
-            max-width: 100%;
-            max-height: 100%;
-            width: auto;
-            height: auto;
-            border: 4px solid #ffcc00;
-            box-shadow: 0 0 30px rgba(255, 204, 0, 0.6);
-            image-rendering: crisp-edges;
-            transition: transform 0.2s;
-        }
-        /* Landscape / Wide screens - prioritize full height */
-        @media (orientation: landscape) and (min-width: 600px) {
-            img {
-                height: 100%;
-                width: auto;
-            }
-        }
-        /* Portrait / Phones - prioritize full width */
-        @media (orientation: portrait) or (max-width: 599px) {
-            img {
-                width: 100%;
-                height: auto;
-            }
-            .camera-container {
-                padding: 5px;
-            }
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Watch Back — Steubenville surveillance map</title>
+<meta name="description" content="Two camera networks watch the same roads in Steubenville, Ohio. One you can watch back. One only watches you.">
 
-        .overlay {
-            position: absolute;
-            bottom: 16px;
-            left: 16px;
-            background: rgba(0,0,0,0.8);
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-size: 0.95em;
-            pointer-events: none;
-            z-index: 10;
-        }
-        .timestamp {
-            position: absolute;
-            bottom: 16px;
-            right: 16px;
-            background: rgba(0,0,0,0.8);
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-size: 1.05em;
-            font-weight: bold;
-            z-index: 10;
-        }
-        footer {
-            background: #111;
-            padding: 8px;
-            text-align: center;
-            font-size: 0.8em;
-            color: #aaa;
-            flex-shrink: 0;
-        }
+<meta property="og:title" content="Watch Back — Steubenville surveillance map">
+<meta property="og:description" content="Two camera networks watch the same roads. One you can watch back. One only watches you.">
+<meta property="og:type" content="website">
 
-        /* Pinch zoom hint on mobile */
-        .hint {
-            position: absolute;
-            top: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.6);
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.75em;
-            opacity: 0.7;
-            display: none;
-        }
-        @media (max-width: 599px) {
-            .hint { display: block; }
-        }
-    </style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<link rel="stylesheet" href="src/css/app.css">
+<style>
+  .stage { position: relative; flex: 1; min-height: 0; }
+  #map { position: absolute; inset: 0; }
+
+  .maplibregl-ctrl-attrib { background: rgba(8,9,11,0.85) !important; }
+  .maplibregl-ctrl-attrib a { color: var(--fg-dim) !important; }
+
+  /* ---- left rail ---- */
+  .rail {
+    position: absolute; top: 14px; left: 14px; z-index: 10;
+    width: 292px; max-width: calc(100vw - 28px);
+    padding: 14px;
+  }
+  .thesis {
+    font-size: 13.5px; line-height: 1.5; margin: 0 0 14px;
+    color: var(--fg); border-left: 2px solid var(--open); padding-left: 11px;
+  }
+  .thesis b { color: var(--open); font-weight: 600; }
+  .thesis .r { color: var(--closed); font-weight: 600; }
+
+  .hint-box {
+    margin-top: 12px; padding: 9px 11px; border-radius: var(--r-sm);
+    background: #16181d; border: 1px solid var(--border);
+    font-size: 11.5px; line-height: 1.45; color: var(--fg-dim);
+  }
+  #loading { margin-top: 12px; font-size: 12px; color: var(--fg-dim); }
+
+  /* ---- probe ---- */
+  #probe {
+    position: absolute; left: 14px; bottom: 14px; z-index: 10;
+    width: 292px; max-width: calc(100vw - 28px); padding: 13px;
+  }
+  .probe-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .probe-close, .detail-close {
+    background: none; border: none; color: var(--fg-faint);
+    font-size: 15px; cursor: pointer; padding: 2px 5px; line-height: 1; border-radius: 4px;
+  }
+  .probe-close:hover, .detail-close:hover { color: var(--fg); background: #23262d; }
+  .probe-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .probe-stat {
+    padding: 11px; border-radius: var(--r-sm); text-align: center;
+    border: 1px solid currentColor;
+  }
+  .probe-stat.closed { color: var(--closed); background: var(--closed-dim); }
+  .probe-stat.open   { color: var(--open);   background: var(--open-dim); }
+  .probe-stat .stat-num { display: block; font-size: 25px; line-height: 1; }
+  .probe-stat small { display: block; margin-top: 5px; font-size: 10px; color: var(--fg-dim); }
+
+  /* ---- detail panel ---- */
+  #detail {
+    position: absolute; top: 14px; right: 14px; z-index: 20;
+    width: 336px; max-width: calc(100vw - 28px);
+    max-height: calc(100% - 28px); overflow-y: auto;
+    padding: 16px;
+    background: var(--bg-panel); backdrop-filter: blur(14px);
+    border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--shadow);
+  }
+  .detail-close { position: absolute; top: 11px; right: 11px; }
+  .detail-title { font-size: 17px; margin: 10px 0 3px; line-height: 1.25; padding-right: 22px; }
+  .detail-sub { font-size: 12.5px; color: var(--fg-dim); margin: 0 0 13px; line-height: 1.45; }
+  .detail-note { font-size: 11.5px; color: var(--fg-dim); line-height: 1.5; margin: 9px 0 0; }
+
+  .thumb { margin: 0 0 10px; }
+  .thumb img {
+    width: 100%; display: block; border-radius: var(--r-sm);
+    border: 1px solid var(--open); background: #000; min-height: 90px;
+  }
+  .thumb figcaption {
+    font-family: var(--mono); font-size: 10px; color: var(--fg-faint);
+    margin-top: 5px; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+
+  .no-view {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 5px; height: 118px; border-radius: var(--r-sm);
+    border: 1px dashed rgba(255,77,79,0.45); background: var(--closed-dim);
+  }
+  .no-view span {
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.13em; color: var(--closed);
+  }
+  .no-view small { font-size: 11px; color: var(--fg-faint); }
+
+  .gap-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+
+  .sv-block { margin-top: 13px; }
+  .sv-lede { font-size: 12.5px; color: var(--fg); margin: 0 0 9px; line-height: 1.45; }
+  .sv-links { display: flex; flex-wrap: wrap; gap: 6px; }
+  .sv-links .btn { flex: 1; min-width: 128px; }
+
+  @media (max-width: 720px) {
+    .rail { width: calc(100vw - 28px); }
+    .thesis { display: none; }
+    #detail { top: auto; bottom: 0; left: 0; right: 0; width: 100%;
+              max-width: none; max-height: 66%; border-radius: var(--r) var(--r) 0 0; }
+    #probe { display: none; }
+  }
+</style>
 </head>
 <body>
-    <header>
-        <h1>🚦 Ohio DOT Traffic Camera</h1>
-        <p>US-22 / SR-7 / SR-213 • Quad View (Steubenville)</p>
-    </header>
-    <div class="camera-container">
-        <img id="camera" src="https://itscameras.dot.state.oh.us/images/D11/US-22_SR-7_SR-213_Quad.jpg" alt="Live Quad Camera">
-        
-        <div class="overlay">
-            📍 40.3871, -80.6348
-        </div>
-        <div class="timestamp" id="timestamp"></div>
-        <div class="hint">👆 Pinch to zoom</div>
+
+<div class="stage">
+  <div id="map"></div>
+
+  <aside class="rail panel">
+    <p class="thesis">
+      Two camera networks watch these roads.<br>
+      <b>One you can watch back.</b><br>
+      <span class="r">One only watches you.</span>
+    </p>
+
+    <h2 class="panel-title">Layers</h2>
+
+    <label class="legend-row open on" id="row-odot">
+      <span class="legend-swatch"></span>
+      <span>
+        <span class="legend-label">ODOT traffic cameras</span>
+        <span class="legend-note">Public, live, no plate reading. Click one and look through it.</span>
+      </span>
+      <span class="legend-count" id="count-odot">—</span>
+    </label>
+
+    <label class="legend-row closed on" id="row-alpr">
+      <span class="legend-swatch"></span>
+      <span>
+        <span class="legend-label">License plate readers</span>
+        <span class="legend-note">Cones show which way each one faces. No public view through any of them.</span>
+      </span>
+      <span class="legend-count" id="count-alpr">—</span>
+    </label>
+
+    <label class="legend-row closed" id="row-gaps">
+      <span class="legend-swatch"></span>
+      <span>
+        <span class="legend-label">Incomplete records</span>
+        <span class="legend-note">Mapped, but missing details. These are the ones you can fix.</span>
+      </span>
+      <span class="legend-count" id="count-gaps">—</span>
+    </label>
+
+    <div id="loading"><span class="spinner"></span> Loading plate readers from OpenStreetMap…</div>
+
+    <div class="hint-box">Click anywhere on the map to see who watches that spot.</div>
+
+    <div class="hint-box hide" id="seed-hint">
+      Showing the seed camera only. Add an <span class="mono">OHGO_API_KEY</span> secret to pull ODOT's full catalog —
+      see <a href="contribute.html">Contribute</a>.
     </div>
-    
-    <footer>
-        Auto-refreshes every 5s • Ohio Department of Transportation
-    </footer>
 
-    <script>
-        const img = document.getElementById('camera');
-        const timestampEl = document.getElementById('timestamp');
+    <div class="hint-box hide" id="stale-hint">
+      Overpass is unreachable — showing cached ALPR data.
+    </div>
+  </aside>
 
-        function updateImage() {
-            const timestamp = Date.now();
-            img.src = `https://itscameras.dot.state.oh.us/images/D11/US-22_SR-7_SR-213_Quad.jpg?t=${timestamp}`;
-            
-            const now = new Date();
-            timestampEl.textContent = now.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
-        }
+  <div id="probe" class="panel hide"></div>
+  <div id="detail" class="hide"></div>
+</div>
 
-        updateImage();
-        setInterval(updateImage, 5000);
-
-        // Manual refresh
-        document.addEventListener('keydown', e => {
-            if (e.key.toLowerCase() === 'r') updateImage();
-        });
-
-        // Double tap to refresh on mobile
-        let lastTap = 0;
-        img.addEventListener('touchend', () => {
-            const currentTime = new Date().getTime();
-            const tapLength = currentTime - lastTap;
-            if (tapLength < 500 && tapLength > 0) {
-                updateImage();
-            }
-            lastTap = currentTime;
-        });
-    </script>
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script type="module">
+  import { mountHeader } from "./src/js/nav.js";
+  mountHeader("index.html");
+</script>
+<script type="module" src="src/js/map.js"></script>
 </body>
 </html>
